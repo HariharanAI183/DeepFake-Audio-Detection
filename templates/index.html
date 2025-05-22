@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Fake Voice Detector</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <h1>🎙️ Fake Voice Detector</h1>
+        <form method="post" enctype="multipart/form-data">
+            <input type="file" name="audio_file" accept="audio/wav" required>
+            <button type="submit">Detect</button>
+        </form>
+
+        {% if result %}
+            <div class="result">
+                <strong>Prediction:</strong> {{ result }}
+            </div>
+        {% endif %}
+    </div>
+</body>
+</html>
