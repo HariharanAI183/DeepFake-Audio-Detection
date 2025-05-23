@@ -1,23 +1,44 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <title>Fake Voice Detector</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Fake Voice Detection</title>
+  <link rel="icon" href="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRZIl53i6Tb_QCwo5mOGT5UjS9oTbdk4mcvBw&s" type="image/x-icon" />
+  <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
-    <div class="container">
-        <h1>🎙️ Fake Voice Detector</h1>
-        <form method="post" enctype="multipart/form-data">
-            <input type="file" name="audio_file" accept="audio/wav" required>
-            <button type="submit">Detect</button>
-        </form>
+  <div class="container">
+    <h1>✨ Fake Voice Detection Web App</h1>
 
-        {% if result %}
-            <div class="result">
-                <strong>Prediction:</strong> {{ result }}
-            </div>
-        {% endif %}
-    </div>
+    <section class="upload-section">
+      <h2>🎧 Upload Pre-recorded Audio</h2>
+      <div class="file-upload-container">
+        <label for="fileInput" class="file-upload-label">
+          <span>Choose Audio File</span>
+          <input type="file" id="fileInput" accept="audio/*">
+        </label>
+        <div id="fileName"></div>
+      </div>
+      <audio id="uploadedPlayer" controls></audio>
+      <button id="uploadBtn">Upload & Predict</button>
+    </section>
+
+    <hr>
+
+    <section class="recorder">
+      <h2>🎙️ Record Using Microphone</h2>
+      <div class="rec-controls">
+        <button id="startBtn">Start Recording</button>
+        <button id="stopBtn" disabled>Stop Recording</button>
+        <button id="predictBtn" disabled>Predict</button>
+      </div>
+      <audio id="audioPlayer" controls></audio>
+    </section>
+
+    <div id="result"></div>
+  </div>
+
+  <script src="/static/script.js"></script>
 </body>
 </html>
