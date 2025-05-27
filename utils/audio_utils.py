@@ -1,65 +1,36 @@
-import numpy as np
 import io
+import numpy as np
 import scipy.io.wavfile as wav
-import tensorflow as tf
 from python_speech_features import mfcc
-import logging
+import tensorflow as tf
 
-# Configure logging
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
-
+_MODEL_PATH = "model/fake_voice_model.keras"
 try:
-    model = tf.keras.models.load_model("model/fake_voice_model.keras")
+    _model = tf.keras.models.load_model(_MODEL_PATH)
 except Exception as e:
-    logger.error(f"Failed to load model: {e}")
-    raise
-
-LABELS = ['Fake', 'Real']
+    raise RuntimeError(f"Failed to load model at {_MODEL_PATH}: {e}")
 
 def preprocess_audio(audio_bytes, max_len=100):
     try:
-        # Read audio bytes as WAV format using scipy
-        sample_rate, signal = wav.read(io.BytesIO(audio_bytes))
+        sr, signal = wav.read(io.BytesIO(audio_bytes))
         
-        # Convert stereo to mono if needed
         if signal.ndim > 1:
             signal = np.mean(signal, axis=1)
-            
-        # Normalize audio signal
-        signal = signal / np.max(np.abs(signal))
-        
-        # Extract MFCC features
-        features = mfcc(
-            signal,
-            samplerate=sample_rate,
-            numcep=13,
-            nfilt=26,
-            nfft=2048,
-            winlen=0.025,
-            winstep=0.01
-        )
 
-        # Padding or truncating to max_len
-        if features.shape[0] < max_len:
-            pad_width = max_len - features.shape[0]
-            features = np.pad(features, ((0, pad_width), mode=='constant'))
+        feats = mfcc(signal, samplerate=sr, numcep=13, nfilt=26, winlen=0.025, winstep=0.01)
+
+        if feats.shape[0] < max_len:
+            pad = max_len - feats.shape[0]
+            feats = np.pad(feats, ((0, pad), (0,0)), mode='constant')
         else:
-            features = features[:max_len]
-
-        return features[np.newaxis, ..., np.newaxis]
+            feats = feats[:max_len]
+        
+        return feats[np.newaxis, ..., np.newaxis]
     except Exception as e:
-        logger.error(f"Audio processing error: {e}")
-        raise RuntimeError(f"Failed to process audio: {e}")
+        raise RuntimeError(f"Audio preprocessing failed: {e}")
 
-def predict_fake_or_real(mfcc):
-    try:
-        prediction = model.predict(mfcc)[0]
-        predicted_class = int(round(prediction[0]))
-        label = LABELS[predicted_class]
-        confidence = float(prediction[0]) if label == 'Real' else 1 - float(prediction[0])
-        confidence = max(0.0, min(1.0, confidence))  # Ensure confidence is between 0 and 1
-        return label, round(confidence, 2)
-    except Exception as e:
-        logger.error(f"Prediction error: {e}")
-        raise RuntimeError(f"Failed to make prediction: {e}")
+def predict_fake_or_real(mfcc_features):
+    pred = _model.predict(mfcc_features)[0][0]
+    label = "Real" if pred >= 0.5 else "Fake"
+    conf  = float(pred if label=="Real" else 1-pred)
+    return label, round(conf, 2)

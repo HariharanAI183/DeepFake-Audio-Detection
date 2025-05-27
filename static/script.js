@@ -2,6 +2,7 @@ let mediaRecorder;
 let audioChunks = [];
 let audioBlob;
 let mediaStream;
+let currentObjectURL;
 
 window.onload = () => {
   const startBtn = document.getElementById("startBtn");
@@ -13,55 +14,70 @@ window.onload = () => {
   const uploadedPlayer = document.getElementById("uploadedPlayer");
   const resultText = document.getElementById("result");
 
+  const setResult = (text, color="black") => {
+    resultText.textContent = text;
+    resultText.style.color = color;
+  };
+
   const cleanupMedia = () => {
     if (mediaStream) {
+      console.log("mediaStream:", mediaStream);
       mediaStream.getTracks().forEach(track => track.stop());
       mediaStream = null;
     }
   };
 
-  // Add this to your window.onload function
-  fileInput.onchange = () => {
-    if (fileInput.files && fileInput.files[0]) {
-      document.getElementById("fileName").textContent = fileInput.files[0].name;
-      const audioUrl = URL.createObjectURL(fileInput.files[0]);
-      uploadedPlayer.src = audioUrl;
+  const revokeURL = () => {
+    if (currentObjectURL) {
+      URL.revokeObjectURL(currentObjectURL);
+      currentObjectURL = null;
     }
   };
+
+  
+
+  fileInput.addEventListener("change", () => {
+    if (fileInput.files[0]) {
+      document.getElementById("fileName").textContent = fileInput.files[0].name;
+      revokeURL();
+      currentObjectURL = URL.createObjectURL(fileInput.files[0]);
+      uploadedPlayer.src = currentObjectURL;
+    }
+  });
 
   startBtn.onclick = async () => {
     try {
       cleanupMedia();
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       mediaStream = stream;
-
       mediaRecorder = new MediaRecorder(stream);
       audioChunks = [];
 
-      mediaRecorder.ondataavailable = event => {
-        if (event.data.size > 0) audioChunks.push(event.data);
+      mediaRecorder.ondataavailable = e => {
+        if (e.data.size > 0) audioChunks.push(e.data);
       };
 
       mediaRecorder.onstop = () => {
-        audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
-        const audioUrl = URL.createObjectURL(audioBlob);
-        audioPlayer.src = audioUrl;
+        audioBlob = new Blob(audioChunks, { type: "audio/wav" });
+        revokeURL();
+        currentObjectURL = URL.createObjectURL(audioBlob);
+        audioPlayer.src = currentObjectURL;
         predictBtn.disabled = false;
       };
 
-      mediaRecorder.start(100); // Collect data every 100ms
+      mediaRecorder.start(100);
       startBtn.disabled = true;
       stopBtn.disabled = false;
       predictBtn.disabled = true;
-      resultText.textContent = "";
+      setResult("");
     } catch (err) {
-      console.error("Error accessing microphone:", err);
-      resultText.textContent = "Error: Could not access microphone. Please check permissions.";
+      console.error("Error accessing mic:", err);
+      setResult("Error: Could not access microphone. Check permissions.", "red");
     }
   };
 
   stopBtn.onclick = () => {
-    if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+    if (mediaRecorder && mediaRecorder.state !== "inactive") {
       mediaRecorder.stop();
       cleanupMedia();
       stopBtn.disabled = true;
@@ -69,68 +85,43 @@ window.onload = () => {
     }
   };
 
-  const predictAudio = async (blob, isUploaded = false) => {
-    const resultText = document.getElementById("result");
-    resultText.textContent = "Processing...";
-    resultText.style.color = "blue";
+  const predictAudio = async (blob, isUploaded=false) => {
+    setResult("Processing...", "blue");
 
     const formData = new FormData();
-    formData.append('audio', blob, isUploaded ? 'uploaded.wav' : 'recorded.wav');
+    formData.append("audio", blob, isUploaded ? "uploaded.wav" : "recorded.wav");
 
     try {
-        const response = await fetch('/upload', {
-            method: 'POST',
-            body: formData
-        });
+      const response = await fetch("/upload", { method: "POST", body: formData });
+      const data = await response.json();
 
-        const data = await response.json();
-        
-        if (!response.ok) {
-            throw new Error(data.message || 'Server processing failed');
-        }
-
-        resultText.textContent = `Prediction: ${data.label} (Confidence: ${data.confidence})`;
-        resultText.style.color = data.label === 'Real' ? "green" : "red";
+      if (!response.ok) throw new Error(data.error || "Server error");
+      const color = data.label === "Real" ? "green" : "red";
+      setResult(`Prediction: ${data.label} (Confidence: ${data.confidence})`, color);
     } catch (err) {
-        console.error("Error:", err);
-        resultText.textContent = `Error: ${err.message}`;
-        resultText.style.color = "red";
-        
-        // Special handling for FFmpeg errors
-        if (err.message.includes('FFmpeg') || err.message.includes('convert')) {
-            resultText.textContent += ". Please try uploading a WAV file.";
-        }
-    }
-  };
-  predictBtn.onclick = async () => {
-    if (audioBlob) {
-      await predictAudio(audioBlob);
+      console.error("Error:", err);
+      let msg = err.message;
+      if (msg.match(/FFmpeg|convert/)) msg += " — please try uploading a WAV file.";
+      setResult(`Error: ${msg}`, "red");
     }
   };
 
-  uploadBtn.onclick = async () => {
-    if (!fileInput.files || !fileInput.files[0]) {
-      resultText.textContent = "Please select an audio file first";
+  predictBtn.onclick = () => {
+    if (audioBlob) predictAudio(audioBlob);
+  };
+
+  uploadBtn.onclick = () => {
+    if (!fileInput.files[0]) {
+      setResult("Please select an audio file first", "red");
       return;
     }
-
     const file = fileInput.files[0];
-    if (!file.type.includes('audio/')) {
-      resultText.textContent = "Please select an audio file";
+    if (!file.type.startsWith("audio/")) {
+      setResult("Selected file is not audio", "red");
       return;
     }
-
-    const audioUrl = URL.createObjectURL(file);
-    uploadedPlayer.src = audioUrl;
-
-    try {
-      await predictAudio(file, true);
-    } catch (err) {
-      console.error("Upload error:", err);
-      resultText.textContent = `Error: ${err.message}`;
-    }
+    predictAudio(file, true);
   };
 
-  // Cleanup on page unload
-  window.addEventListener('beforeunload', cleanupMedia);
+  window.addEventListener("beforeunload", cleanupMedia);
 };
