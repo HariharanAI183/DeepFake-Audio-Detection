@@ -40,7 +40,7 @@ pip install -r requirements.txt
 
 # Run the app
 python app.py
-```
+
 
 
 ├── app.py                      # Flask app
@@ -56,3 +56,5 @@ python app.py
 ├── ffmpeg/                     # Optional FFmpeg binary if needed
 ├── requirements.txt            # Dependencies
 └── README.md                   # This file
+
+```
