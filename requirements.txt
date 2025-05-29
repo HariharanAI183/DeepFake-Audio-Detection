@@ -1,6 +1,7 @@
-tensorflow
-librosa
-numpy
-flask
+Flask
 werkzeug
-soundfile
+pydub
+numpy
+scipy
+python_speech_features
+tensorflow

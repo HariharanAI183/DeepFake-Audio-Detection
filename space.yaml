@@ -1,0 +1,3 @@
+title: "DeepFake Audio Detection"
+sdk: docker
+python_version: "3.10"
