@@ -1,20 +1,20 @@
-# 🎙️ DeepFake Audio Detection Web App
+# DeepFake Audio Detection Web App
 
 A Flask-based web app that allows users to record or upload an audio file and classifies it as **real or fake** using a deep learning model trained on MFCC features.
 
 ---
 
-## 🚀 Features
+##  Features
 
-- 🎤 Record voice using browser microphone
-- 📁 Upload audio (WAV or MP3)
-- ⚙️ Real-time prediction (DeepFake vs Real)
-- 🔍 MFCC-based audio preprocessing
-- 💡 TensorFlow-based model for inference
+-  Record voice using browser microphone
+-  Upload audio (WAV or MP3)
+-  Real-time prediction (DeepFake vs Real)
+-  MFCC-based audio preprocessing
+-  TensorFlow-based model for inference
 
 ---
 
-## 🧠 Tech Stack
+##  Tech Stack
 
 - **Frontend:** HTML, CSS, JavaScript
 - **Backend:** Python, Flask
@@ -24,7 +24,7 @@ A Flask-based web app that allows users to record or upload an audio file and cl
 
 ---
 
-## 📦 Setup Instructions
+##  Setup Instructions
 
 ```bash
 # Clone the repository
